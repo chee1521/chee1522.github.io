@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Travel Planner - Plan Your Perfect Journey</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" 
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" 
+          crossorigin="" />
+    
+    <!-- Leaflet Control Geocoder CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.css" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #fafafa;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 30px 0;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-info {
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border: 1px solid #90caf9;
+        }
+
+        .alert-warning {
+            background-color: #fff3e0;
+            color: #e65100;
+            border: 1px solid #ffb74d;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .card {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card-header {
+            font-size: 1.5rem;
+            font-weight: 400;
+            margin-bottom: 25px;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .collapsible-header {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #444;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="date"],
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #4A90E2;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: #4A90E2;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: #357ABD;
+        }
+
+        .btn-primary:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: #4A90E2;
+            border: 1px dashed #4A90E2;
+        }
+
+        .btn-secondary:hover {
+            background-color: #f0f7ff;
+            border-style: solid;
+        }
+
+        .btn-danger {
+            background-color: #ff4444;
+            color: white;
+            padding: 12px;
+        }
+
+        .btn-danger:hover {
+            background-color: #cc0000;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 0.85rem;
+        }
+
+        .route-comparison {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .route-option {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: white;
+        }
+
+        .route-option:hover {
+            border-color: #4A90E2;
+        }
+
+        .route-option.selected {
+            border-color: #4A90E2;
+            background-color: #f0f7ff;
+        }
+
+        .route-option.fastest {
+            border-left: 4px solid #4A90E2;
+        }
+
+        .route-option.shortest {
+            border-left: 4px solid #f59e0b;
+        }
+
+        .route-option.scenic {
+            border-left: 4px solid #22c55e;
+        }
+
+        .route-info {
+            flex: 1;
+        }
+
+        .route-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .route-stats {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .route-select-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            background-color: #4A90E2;
+            color: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .waypoint-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .waypoint-input {
+            flex: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 10px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.85rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #1a1a1a;
+        }
+
+        .stat-unit {
+            color: #999;
+            font-size: 0.85rem;
+        }
+
+        .stat-value.primary {
+            color: #4A90E2;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .list-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+            cursor: pointer;
+        }
+
+        .list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .list-item-title {
+            font-weight: 500;
+            color: #1a1a1a;
+            margin-bottom: 5px;
+        }
+
+        .list-item-subtitle {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .list-item-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+        }
+
+        .category {
+            background-color: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+
+        .poi-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        #map {
+            width: 100%;
+            height: 600px;
+            border-radius: 12px;
+        }
+
+        .sticky-map {
+            position: sticky;
+            top: 20px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            color: #999;
+            font-size: 0.9rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .collapsible-content {
+            margin-top: 25px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .marker-popup {
+            font-size: 0.9rem;
+        }
+
+        .marker-popup h3 {
+            margin: 0 0 8px 0;
+            font-size: 1rem;
+            color: #1a1a1a;
+        }
+
+        .marker-popup p {
+            margin: 4px 0;
+            color: #666;
+        }
+
+        .geocoder-control {
+            display: none !important;
+        }
+
+        .checkbox-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        @media (max-width: 968px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sticky-map {
+                position: relative;
+                top: 0;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 4px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🧭 Travel Planner</h1>
+            <p class="subtitle">Plan your journey with ease - Powered by OpenStreetMap</p>
+        </header>
+
+        <div class="alert alert-info">
+            <strong>💡 Pro Tip:</strong> Click on the map to select your origin and destination points. The app will calculate all 3 route types for you to compare!
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Left Panel -->
+            <div>
+                <!-- Trip Planning Card -->
+                <div class="card">
+                    <h2 class="card-header">📍 Trip Details</h2>
+                    
+                    <div class="form-group">
+                        <label for="origin">Origin</label>
+                        <input type="text" id="origin" placeholder="Click map or type: London, UK">
+                        <small style="color: #999; font-size: 0.85rem;">💡 Click the map to set location</small>
+                    </div>
+
+                    <div id="waypoints-container"></div>
+
+                    <button class="btn btn-secondary" onclick="addWaypoint()">
+                        ➕ Add Waypoint
+                    </button>
+
+                    <div class="form-group">
+                        <label for="destination">Destination</label>
+                        <input type="text" id="destination" placeholder="Click map or type: Edinburgh, UK">
+                        <small style="color: #999; font-size: 0.85rem;">💡 Click the map to set location</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tripDate">Travel Date (Optional)</label>
+                        <input type="date" id="tripDate">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="calculateAllRoutes()" id="planRouteBtn">
+                        🔍 Calculate All Routes
+                    </button>
+                </div>
+
+                <!-- Route Comparison Card -->
+                <div class="card hidden" id="route-comparison-card">
+                    <h2 class="card-header">🛣️ Route Comparison</h2>
+                    
+                    <div class="route-comparison" id="route-options">
+                        <!-- Routes will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Calculator Card -->
+                <div class="card">
+                    <h2 class="card-header collapsible-header" onclick="toggleSection('calculator')">
+                        <span>💰 Trip Calculator</span>
+                        <span id="calculator-toggle">▼</span>
+                    </h2>
+
+                    <div id="calculator-content" class="collapsible-content">
+                        <div class="grid-2 form-group">
+                            <div>
+                                <label for="distanceUnit">Distance Unit</label>
+                                <select id="distanceUnit" onchange="updateStats()">
+                                    <option value="miles">Miles</option>
+                                    <option value="km">Kilometers</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="currency">Currency</label>
+                                <select id="currency" onchange="updateStats()">
+                                    <option value="USD">$ USD</option>
+                                    <option value="GBP">£ GBP</option>
+                                    <option value="EUR">€ EUR</option>
+                                    <option value="CAD">$ CAD</option>
+                                    <option value="AUD">$ AUD</option>
+                                    <option value="JPY">¥ JPY</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid-3 form-group">
+                            <div>
+                                <label for="fuelUnit">Fuel Unit</label>
+                                <select id="fuelUnit" onchange="updateStats()">
+                                    <option value="mpg">MPG</option>
+                                    <option value="L/100km">L/100km</option>
+                                    <option value="km/L">km/L</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="fuelEfficiency">Fuel Efficiency</label>
+                                <input type="number" id="fuelEfficiency" value="25" step="0.1" onchange="updateStats()">
+                            </div>
+                            <div>
+                                <label for="fuelQuantity">Price Per</label>
+                                <select id="fuelQuantity" onchange="updateStats()">
+                                    <option value="litre">Litre</option>
+                                    <option value="gallon">Gallon</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fuelPrice">Fuel Price</label>
+                            <input type="number" id="fuelPrice" value="3.50" step="0.01" onchange="updateStats()">
+                        </div>
+
+                        <div id="stats-container" class="hidden">
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">Total Distance</div>
+                                    <div class="stat-value" id="totalDistance">0</div>
+                                    <div class="stat-unit" id="distanceUnitLabel">mi</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Fuel Needed</div>
+                                    <div class="stat-value" id="fuelNeeded">0</div>
+                                    <div class="stat-unit" id="fuelUnitLabel">gal</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">Est. Cost</div>
+                                    <div class="stat-value primary" id="estCost">$0.00</div>
+                                    <div class="stat-unit">fuel only</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- POI Card -->
+                <div class="card hidden" id="poi-card">
+                    <h2 class="card-header collapsible-header" onclick="toggleSection('poi')">
+                        <span>📷 Points of Interest (<span id="poi-count">0</span>)</span>
+                        <span id="poi-toggle">▼</span>
+                    </h2>
+
+                    <div id="poi-content" class="collapsible-content">
+                        <div class="form-group">
+                            <label>Show Categories</label>
+                            <div class="checkbox-group">
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-fuel" checked onchange="filterPlaces()">
+                                    <label for="show-fuel">⛽ Fuel</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-restaurants" checked onchange="filterPlaces()">
+                                    <label for="show-restaurants">🍽️ Restaurants</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-hotels" checked onchange="filterPlaces()">
+                                    <label for="show-hotels">🏨 Hotels</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-attractions" checked onchange="filterPlaces()">
+                                    <label for="show-attractions">🎭 Attractions</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-natural" checked onchange="filterPlaces()">
+                                    <label for="show-natural">🌲 Natural Beauty</label>
+                                </div>
+                                <div class="checkbox-item">
+                                    <input type="checkbox" id="show-historical" checked onchange="filterPlaces()">
+                                    <label for="show-historical">🏛️ Historical</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button class="btn btn-secondary" onclick="togglePOIMarkers()" id="toggleMarkersBtn">
+                                📍 Show All on Map
+                            </button>
+                        </div>
+
+                        <div class="list-container" id="poi-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel - Map -->
+            <div class="sticky-map">
+                <div class="card" style="padding: 0; overflow: hidden;">
+                    <div id="map"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Travel Planner © 2026 • Powered by OpenStreetMap, GraphHopper & Foursquare • Free & Open Source</p>
+        </footer>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    
+    <!-- Leaflet Control Geocoder -->
+    <script src="https://unpkg.com/leaflet-control-geocoder@2.4.0/dist/Control.Geocoder.js"></script>
+    
+    <script>
+        // Global variables
+        let map;
+        let routeLayers = {
+            fastest: null,
+            shortest: null,
+            scenic: null
+        };
+        let markersLayer;
+        let poiMarkersLayer;
+        let waypointCount = 0;
+        let selectedRoute = 'fastest';
+        let allPlaces = [];
+        let allRoutes = {};
+        let originCoords = null;
+        let destCoords = null;
+        let totalDistanceMeters = 0;
+        let geocoder;
+        let poiMarkersVisible = false;
+        let legendControl;
+        let expandedSections = {
+            calculator: true,
+            poi: false
+        };
+
+        // Currency symbols
+        const currencySymbols = {
+            'USD': '$',
+            'GBP': '£',
+            'EUR': '€',
+            'CAD': '$',
+            'AUD': '$',
+            'JPY': '¥'
+        };
+
+        // Initialize map
+        function initMap() {
+            map = L.map('map').setView([51.5074, -0.1278], 6);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+
+            // Initialize layers
+            routeLayers.fastest = L.layerGroup().addTo(map);
+            routeLayers.shortest = L.layerGroup().addTo(map);
+            routeLayers.scenic = L.layerGroup().addTo(map);
+            markersLayer = L.layerGroup().addTo(map);
+            poiMarkersLayer = L.layerGroup().addTo(map);
+
+            geocoder = L.Control.Geocoder.nominatim();
+            map.on('click', onMapClick);
+
+            // Add legend
+            addLegend();
+        }
+
+        // Add map legend
+        function addLegend() {
+            legendControl = L.control({position: 'bottomright'});
+            legendControl.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #4A90E2;"></div>
+                        <span>Fastest Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #f59e0b;"></div>
+                        <span>Shortest Route</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #22c55e;"></div>
+                        <span>Scenic Route</span>
+                    </div>
+                `;
+                return div;
+            };
+            legendControl.addTo(map);
+        }
+
+        // Handle map clicks
+        function onMapClick(e) {
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
+                if (results.length > 0) {
+                    const result = results[0];
+                    const name = result.name || result.html || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    
+                    const originInput = document.getElementById('origin');
+                    const destInput = document.getElementById('destination');
+                    
+                    if (!originInput.value || !originCoords) {
+                        originInput.value = name;
+                        originCoords = [lat, lng];
+                        
+                        markersLayer.clearLayers();
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div style="background-color: #22c55e; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            })
+                        }).addTo(markersLayer).bindPopup('<b>Origin</b><br>' + name);
+                    } else if (!destInput.value || !destCoords) {
+                        destInput.value = name;
+                        destCoords = [lat, lng];
+                        
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div style="background-color: #ef4444; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            })
+                        }).addTo(markersLayer).bindPopup('<b>Destination</b><br>' + name);
+                        
+                        setTimeout(calculateAllRoutes, 500);
+                    }
+                }
+            });
+        }
+
+        // Setup search
+        function setupSearch(inputId) {
+            const input = document.getElementById(inputId);
+
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchLocation(this.value, inputId);
+                }
+            });
+
+            input.addEventListener('blur', function() {
+                if (this.value && !this.dataset.searched) {
+                    setTimeout(() => searchLocation(this.value, inputId), 300);
+                }
+            });
+        }
+
+        // Search for location
+        function searchLocation(query, inputId) {
+            if (!query || query.length < 3) return;
+
+            const input = document.getElementById(inputId);
+            input.dataset.searched = 'true';
+
+            geocoder.geocode(query, function(results) {
+                if (results && results.length > 0) {
+                    const result = results[0];
+                    const lat = result.center.lat;
+                    const lng = result.center.lng;
+                    
+                    input.value = result.name || result.html || query;
+                    
+                    if (inputId === 'origin') {
+                        originCoords = [lat, lng];
+                        markersLayer.clearLayers();
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div style="background-color: #22c55e; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            })
+                        }).addTo(markersLayer).bindPopup('<b>Origin</b>');
+                        map.setView([lat, lng], 13);
+                    } else if (inputId === 'destination') {
+                        destCoords = [lat, lng];
+                        L.marker([lat, lng], {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div style="background-color: #ef4444; width: 30px; height: 30px; border-radius: 50%; border: 3px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                                iconSize: [30, 30],
+                                iconAnchor: [15, 15]
+                            })
+                        }).addTo(markersLayer).bindPopup('<b>Destination</b>');
+                    }
+                } else {
+                    alert('Location not found. Try: "London, UK" or "Manchester, England"');
+                }
+            });
+        }
+
+        // Add waypoint
+        function addWaypoint() {
+            waypointCount++;
+            const container = document.getElementById('waypoints-container');
+            const waypointDiv = document.createElement('div');
+            waypointDiv.className = 'form-group';
+            waypointDiv.id = `waypoint-container-${waypointCount}`;
+            waypointDiv.innerHTML = `
+                <label>Waypoint ${waypointCount}</label>
+                <div class="waypoint-group">
+                    <input type="text" class="waypoint-input-field" id="waypoint-${waypointCount}" placeholder="Enter waypoint or click map">
+                    <button class="btn btn-danger" onclick="removeWaypoint(${waypointCount})">✕</button>
+                </div>
+            `;
+            container.appendChild(waypointDiv);
+            setupSearch(`waypoint-${waypointCount}`);
+        }
+
+        // Remove waypoint
+        function removeWaypoint(id) {
+            const container = document.getElementById(`waypoint-container-${id}`);
+            if (container) {
+                container.remove();
+            }
+        }
+
+        // Toggle section
+        function toggleSection(section) {
+            expandedSections[section] = !expandedSections[section];
+            const content = document.getElementById(`${section}-content`);
+            const toggle = document.getElementById(`${section}-toggle`);
+            
+            if (expandedSections[section]) {
+                content.classList.remove('hidden');
+                toggle.textContent = '▲';
+            } else {
+                content.classList.add('hidden');
+                toggle.textContent = '▼';
+            }
+        }
+
+        // Calculate all routes
+        async function calculateAllRoutes() {
+            if (!originCoords || !destCoords) {
+                alert('Please set both origin and destination (click on map or type and press Enter)');
+                return;
+            }
+
+            const btn = document.getElementById('planRouteBtn');
+            btn.disabled = true;
+
+            try {
+                // Clear previous routes
+                Object.values(routeLayers).forEach(layer => layer.clearLayers());
+                allRoutes = {};
+
+                // Collect waypoints
+                const waypoints = [];
+                document.querySelectorAll('.waypoint-input-field').forEach((input) => {
+                    if (input.value.trim() && input.dataset.coords) {
+                        const coords = JSON.parse(input.dataset.coords);
+                        waypoints.push(coords);
+                    }
+                });
+
+                // Calculate all three routes
+                btn.textContent = '🔄 Calculating fastest route...';
+                allRoutes.fastest = await getGraphHopperRoute(originCoords, destCoords, waypoints, 'fastest');
+                
+                btn.textContent = '🔄 Calculating shortest route...';
+                allRoutes.shortest = await getGraphHopperRoute(originCoords, destCoords, waypoints, 'shortest');
+                
+                btn.textContent = '🔄 Calculating scenic route...';
+                allRoutes.scenic = await getGraphHopperRoute(originCoords, destCoords, waypoints, 'scenic');
+
+                // Display all routes on map
+                displayAllRoutes();
+
+                // Show route comparison
+                displayRouteComparison();
+
+                // Select fastest by default
+                selectRouteOption('fastest');
+
+                btn.disabled = false;
+                btn.textContent = '🔍 Calculate All Routes';
+
+                // Find POIs along the selected route
+                await findPlacesAlongRoute();
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error calculating routes: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = '🔍 Calculate All Routes';
+            }
+        }
+
+        // Get route from GraphHopper
+        async function getGraphHopperRoute(origin, destination, waypoints, type) {
+            try {
+                // Build points array
+                let points = [[origin[0], origin[1]]];
+                waypoints.forEach(wp => points.push([wp[0], wp[1]]));
+                points.push([destination[0], destination[1]]);
+
+                // Build URL
+                const pointsStr = points.map(p => `point=${p[0]},${p[1]}`).join('&');
+                
+                // Set profile based on type
+                let profile = 'car';
+                let params = '';
+                
+                if (type === 'shortest') {
+                    params = '&weighting=shortest';
+                } else if (type === 'scenic') {
+                    profile = 'bike'; // Bike routes tend to be more scenic
+                    params = '&avoid=motorway';
+                } else {
+                    params = '&weighting=fastest';
+                }
+
+                const url = `https://graphhopper.com/api/1/route?${pointsStr}&profile=${profile}${params}&locale=en&points_encoded=false&key=`;
+                
+                // Try without API key first (public instance has limits)
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.paths && data.paths.length > 0) {
+                    return {
+                        distance: data.paths[0].distance,
+                        time: data.paths[0].time,
+                        coordinates: data.paths[0].points.coordinates
+                    };
+                } else {
+                    throw new Error(`${type} route not found`);
+                }
+            } catch (error) {
+                console.error(`GraphHopper ${type} error:`, error);
+                // Fallback to OSRM
+                return await getOSRMRoute(origin, destination, waypoints, type);
+            }
+        }
+
+        // Fallback to OSRM
+        async function getOSRMRoute(origin, destination, waypoints, type) {
+            let coords = `${origin[1]},${origin[0]}`;
+            waypoints.forEach(wp => {
+                coords += `;${wp[1]},${wp[0]}`;
+            });
+            coords += `;${destination[1]},${destination[0]}`;
+
+            const response = await fetch(
+                `https://router.project-osrm.org/route/v1/car/${coords}?overview=full&geometries=geojson`
+            );
+
+            const data = await response.json();
+
+            if (data.code !== 'Ok') {
+                throw new Error('Route not found');
+            }
+
+            return {
+                distance: data.routes[0].distance,
+                time: data.routes[0].duration,
+                coordinates: data.routes[0].geometry.coordinates
+            };
+        }
+
+        // Display all routes on map
+        function displayAllRoutes() {
+            const colors = {
+                fastest: '#4A90E2',
+                shortest: '#f59e0b',
+                scenic: '#22c55e'
+            };
+
+            Object.keys(allRoutes).forEach(type => {
+                if (allRoutes[type]) {
+                    const coords = allRoutes[type].coordinates.map(c => 
+                        Array.isArray(c[0]) ? [c[0][1], c[0][0]] : [c[1], c[0]]
+                    );
+                    
+                    L.polyline(coords, {
+                        color: colors[type],
+                        weight: 4,
+                        opacity: 0.7
+                    }).addTo(routeLayers[type]);
+
+                    // Fit map to show all routes
+                    if (type === 'fastest') {
+                        map.fitBounds(L.polyline(coords).getBounds(), { padding: [50, 50] });
+                    }
+                }
+            });
+        }
+
+        // Display route comparison
+        function displayRouteComparison() {
+            const container = document.getElementById('route-options');
+            container.innerHTML = '';
+
+            Object.keys(allRoutes).forEach(type => {
+                if (allRoutes[type]) {
+                    const route = allRoutes[type];
+                    const distanceKm = route.distance / 1000;
+                    const distanceMi = distanceKm * 0.621371;
+                    const timeHours = Math.floor(route.time / 3600);
+                    const timeMins = Math.floor((route.time % 3600) / 60);
+
+                    const div = document.createElement('div');
+                    div.className = `route-option ${type}`;
+                    div.onclick = () => selectRouteOption(type);
+                    
+                    const icons = {
+                        fastest: '⚡',
+                        shortest: '📏',
+                        scenic: '🌄'
+                    };
+
+                    div.innerHTML = `
+                        <div class="route-info">
+                            <div class="route-name">${icons[type]} ${type.charAt(0).toUpperCase() + type.slice(1)} Route</div>
+                            <div class="route-stats">
+                                ${distanceMi.toFixed(1)} mi (${distanceKm.toFixed(1)} km) • 
+                                ${timeHours}h ${timeMins}m
+                            </div>
+                        </div>
+                        <button class="route-select-btn" onclick="event.stopPropagation(); selectRouteOption('${type}')">
+                            Select
+                        </button>
+                    `;
+                    
+                    container.appendChild(div);
+                }
+            });
+
+            document.getElementById('route-comparison-card').classList.remove('hidden');
+        }
+
+        // Select route option
+        function selectRouteOption(type) {
+            selectedRoute = type;
+            
+            // Update selected state
+            document.querySelectorAll('.route-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            document.querySelector(`.route-option.${type}`)?.classList.add('selected');
+
+            // Update stats with selected route
+            if (allRoutes[type]) {
+                totalDistanceMeters = allRoutes[type].distance;
+                updateStats();
+            }
+
+            // Highlight selected route
+            Object.keys(routeLayers).forEach(t => {
+                routeLayers[t].eachLayer(layer => {
+                    if (t === type) {
+                        layer.setStyle({ weight: 6, opacity: 1 });
+                        layer.bringToFront();
+                    } else {
+                        layer.setStyle({ weight: 3, opacity: 0.3 });
+                    }
+                });
+            });
+        }
+
+        // Update stats
+        function updateStats() {
+            if (totalDistanceMeters === 0) return;
+
+            const distanceUnit = document.getElementById('distanceUnit').value;
+            const fuelUnit = document.getElementById('fuelUnit').value;
+            const fuelEfficiency = parseFloat(document.getElementById('fuelEfficiency').value) || 25;
+            const fuelPrice = parseFloat(document.getElementById('fuelPrice').value) || 3.50;
+            const currency = document.getElementById('currency').value;
+            const fuelQuantity = document.getElementById('fuelQuantity').value;
+
+            const distanceInMiles = totalDistanceMeters / 1609.34;
+            const distanceInKm = totalDistanceMeters / 1000;
+            const distance = distanceUnit === 'miles' ? distanceInMiles : distanceInKm;
+
+            let fuelNeeded = 0;
+            let fuelUnitLabel = '';
+
+            if (fuelUnit === 'mpg') {
+                fuelNeeded = distanceInMiles / fuelEfficiency;
+                fuelUnitLabel = fuelQuantity === 'gallon' ? 'gal' : 'L';
+                if (fuelQuantity === 'litre') {
+                    fuelNeeded = fuelNeeded * 3.78541;
+                }
+            } else if (fuelUnit === 'L/100km') {
+                fuelNeeded = (distanceInKm / 100) * fuelEfficiency;
+                fuelUnitLabel = 'L';
+                if (fuelQuantity === 'gallon') {
+                    fuelNeeded = fuelNeeded / 3.78541;
+                    fuelUnitLabel = 'gal';
+                }
+            } else if (fuelUnit === 'km/L') {
+                fuelNeeded = distanceInKm / fuelEfficiency;
+                fuelUnitLabel = 'L';
+                if (fuelQuantity === 'gallon') {
+                    fuelNeeded = fuelNeeded / 3.78541;
+                    fuelUnitLabel = 'gal';
+                }
+            }
+
+            const cost = fuelNeeded * fuelPrice;
+            const symbol = currencySymbols[currency];
+
+            document.getElementById('totalDistance').textContent = distance.toFixed(1);
+            document.getElementById('distanceUnitLabel').textContent = distanceUnit === 'miles' ? 'mi' : 'km';
+            document.getElementById('fuelNeeded').textContent = fuelNeeded.toFixed(1);
+            document.getElementById('fuelUnitLabel').textContent = fuelUnitLabel;
+            document.getElementById('estCost').textContent = `${symbol}${cost.toFixed(2)}`;
+            document.getElementById('stats-container').classList.remove('hidden');
+        }
+
+        // Find places along route using multiple APIs
+        async function findPlacesAlongRoute() {
+            allPlaces = [];
+
+            if (!allRoutes[selectedRoute]) return;
+
+            const coords = allRoutes[selectedRoute].coordinates.map(c => 
+                Array.isArray(c[0]) ? [c[1], c[0]] : [c[1], c[0]]
+            );
+
+            // Sample points
+            const samplePoints = [];
+            const sampleInterval = Math.max(1, Math.floor(coords.length / 10));
+            
+            for (let i = 0; i < coords.length; i += sampleInterval) {
+                samplePoints.push(coords[i]);
+            }
+
+            const btn = document.getElementById('planRouteBtn');
+            const originalText = btn.textContent;
+
+            // Use Overpass API for comprehensive POI data
+            for (let idx = 0; idx < Math.min(samplePoints.length, 8); idx++) {
+                const point = samplePoints[idx];
+                try {
+                    btn.textContent = `🔄 Finding places ${idx + 1}/${Math.min(samplePoints.length, 8)}...`;
+                    
+                    const radius = 8000; // Increased radius
+                    
+                    const query = `
+                        [out:json][timeout:30];
+                        (
+                            node["amenity"~"restaurant|cafe|fuel|hotel|motel|pub|bar|fast_food|biergarten|food_court"](around:${radius},${point[0]},${point[1]});
+                            node["tourism"~"attraction|museum|viewpoint|hotel|information|artwork|gallery|theme_park|zoo"](around:${radius},${point[0]},${point[1]});
+                            node["historic"~"castle|monument|memorial|ruins|archaeological_site|battlefield|manor|fort|city_gate|tower"](around:${radius},${point[0]},${point[1]});
+                            node["natural"~"peak|waterfall|beach|spring|cave_entrance|stone|rock|cliff|volcano"](around:${radius},${point[0]},${point[1]});
+                            node["leisure"~"park|nature_reserve|garden|beach_resort"](around:${radius},${point[0]},${point[1]});
+                            way["amenity"~"restaurant|cafe|fuel|hotel"](around:${radius},${point[0]},${point[1]});
+                            way["tourism"~"attraction|museum|hotel"](around:${radius},${point[0]},${point[1]});
+                            way["historic"](around:${radius},${point[0]},${point[1]});
+                            way["natural"](around:${radius},${point[0]},${point[1]});
+                        );
+                        out center;
+                    `;
+
+                    const response = await fetch('https://overpass-api.de/api/interpreter', {
+                        method: 'POST',
+                        body: query
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data.elements) {
+                        data.elements.forEach(element => {
+                            if (element.tags && element.tags.name) {
+                                const lat = element.lat || (element.center && element.center.lat);
+                                const lon = element.lon || (element.center && element.center.lon);
+                                
+                                if (lat && lon) {
+                                    const category = categorizePlace(element.tags);
+                                    allPlaces.push({
+                                        id: element.id,
+                                        name: element.tags.name,
+                                        lat: lat,
+                                        lon: lon,
+                                        type: element.tags.amenity || element.tags.tourism || element.tags.historic || element.tags.natural || element.tags.leisure || 'other',
+                                        category: category,
+                                        address: element.tags['addr:street'] || '',
+                                        city: element.tags['addr:city'] || '',
+                                        tags: element.tags
+                                    });
+                                }
+                            }
+                        });
+                    }
+
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+
+                } catch (error) {
+                    console.error('Error fetching places:', error);
+                }
+            }
+
+            btn.textContent = originalText;
+
+            // Remove duplicates
+            const uniquePlaces = Array.from(new Map(allPlaces.map(p => [p.id, p])).values());
+            allPlaces = uniquePlaces;
+
+            if (allPlaces.length > 0) {
+                displayPlaces();
+                document.getElementById('poi-card').classList.remove('hidden');
+                document.getElementById('poi-count').textContent = allPlaces.length;
+            }
+        }
+
+        // Categorize place
+        function categorizePlace(tags) {
+            if (tags.amenity === 'fuel') return 'fuel';
+            if (tags.amenity && ['restaurant', 'cafe', 'pub', 'bar', 'fast_food', 'biergarten', 'food_court'].includes(tags.amenity)) return 'restaurants';
+            if ((tags.amenity && ['hotel', 'motel'].includes(tags.amenity)) || tags.tourism === 'hotel') return 'hotels';
+            if (tags.historic) return 'historical';
+            if (tags.natural || tags.leisure === 'nature_reserve' || tags.leisure === 'park') return 'natural';
+            if (tags.tourism && ['attraction', 'museum', 'gallery', 'artwork', 'theme_park', 'zoo'].includes(tags.tourism)) return 'attractions';
+            return 'other';
+        }
+
+        // Display places
+        function displayPlaces() {
+            const container = document.getElementById('poi-list');
+            container.innerHTML = '';
+
+            const filters = {
+                fuel: document.getElementById('show-fuel').checked,
+                restaurants: document.getElementById('show-restaurants').checked,
+                hotels: document.getElementById('show-hotels').checked,
+                attractions: document.getElementById('show-attractions').checked,
+                natural: document.getElementById('show-natural').checked,
+                historical: document.getElementById('show-historical').checked
+            };
+
+            let filteredPlaces = allPlaces.filter(p => filters[p.category]);
+
+            if (filteredPlaces.length === 0) {
+                container.innerHTML = '<div style="padding: 20px; text-align: center; color: #999;">No places found. Try enabling more categories.</div>';
+                return;
+            }
+
+            filteredPlaces.forEach(place => {
+                const div = document.createElement('div');
+                div.className = 'list-item';
+                
+                const location = place.city || place.address || 'Location available';
+                const icon = getCategoryIcon(place.category);
+                
+                div.innerHTML = `
+                    <div class="list-item-title">${place.name}</div>
+                    <div class="list-item-subtitle">${location}</div>
+                    <div class="list-item-meta">
+                        <span class="category">${icon} ${place.category}</span>
+                    </div>
+                    <div class="poi-actions">
+                        <button class="btn btn-secondary btn-small" onclick="showOnMap(${place.lat}, ${place.lon}, '${place.name.replace(/'/g, "\\'")}', '${icon} ${place.category}')">
+                            📍 View on Map
+                        </button>
+                        <button class="btn btn-secondary btn-small" onclick="addToRoute(${place.lat}, ${place.lon}, '${place.name.replace(/'/g, "\\'")}')">
+                            ➕ Add to Route
+                        </button>
+                    </div>
+                `;
+                
+                container.appendChild(div);
+            });
+
+            document.getElementById('poi-count').textContent = filteredPlaces.length;
+        }
+
+        // Get category icon
+        function getCategoryIcon(category) {
+            const icons = {
+                'fuel': '⛽',
+                'restaurants': '🍽️',
+                'hotels': '🏨',
+                'attractions': '🎭',
+                'natural': '🌲',
+                'historical': '🏛️'
+            };
+            return icons[category] || '📍';
+        }
+
+        // Show place on map
+        function showOnMap(lat, lon, name, category) {
+            map.setView([lat, lon], 15);
+            L.popup()
+                .setLatLng([lat, lon])
+                .setContent(`<div class="marker-popup"><h3>${name}</h3><p>${category}</p></div>`)
+                .openOn(map);
+        }
+
+        // Add place to route
+        function addToRoute(lat, lon, name) {
+            addWaypoint();
+            const newWaypointId = waypointCount;
+            const input = document.getElementById(`waypoint-${newWaypointId}`);
+            input.value = name;
+            input.dataset.coords = JSON.stringify([lat, lon]);
+            
+            alert(`Added "${name}" as waypoint ${newWaypointId}. Click "Calculate All Routes" to recalculate.`);
+        }
+
+        // Toggle POI markers
+        function togglePOIMarkers() {
+            if (poiMarkersVisible) {
+                poiMarkersLayer.clearLayers();
+                poiMarkersVisible = false;
+                document.getElementById('toggleMarkersBtn').textContent = '📍 Show All on Map';
+            } else {
+                showAllPOIMarkers();
+                poiMarkersVisible = true;
+                document.getElementById('toggleMarkersBtn').textContent = '✖️ Hide from Map';
+            }
+        }
+
+        // Show all POI markers
+        function showAllPOIMarkers() {
+            poiMarkersLayer.clearLayers();
+
+            const filters = {
+                fuel: document.getElementById('show-fuel').checked,
+                restaurants: document.getElementById('show-restaurants').checked,
+                hotels: document.getElementById('show-hotels').checked,
+                attractions: document.getElementById('show-attractions').checked,
+                natural: document.getElementById('show-natural').checked,
+                historical: document.getElementById('show-historical').checked
+            };
+
+            let filteredPlaces = allPlaces.filter(p => filters[p.category]);
+
+            filteredPlaces.forEach(place => {
+                const icon = getCategoryIcon(place.category);
+                const marker = L.marker([place.lat, place.lon], {
+                    icon: L.divIcon({
+                        className: 'poi-marker-icon',
+                        html: `<div style="background-color: white; padding: 5px; border-radius: 50%; border: 2px solid #4A90E2; font-size: 18px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);">${icon}</div>`,
+                        iconSize: [35, 35],
+                        iconAnchor: [17, 17]
+                    })
+                }).addTo(poiMarkersLayer);
+
+                marker.bindPopup(`
+                    <div class="marker-popup">
+                        <h3>${place.name}</h3>
+                        <p>${icon} ${place.category}</p>
+                        <button class="btn btn-secondary btn-small" onclick="addToRoute(${place.lat}, ${place.lon}, '${place.name.replace(/'/g, "\\'")}')">
+                            ➕ Add to Route
+                        </button>
+                    </div>
+                `);
+            });
+        }
+
+        // Filter places
+        function filterPlaces() {
+            displayPlaces();
+            if (poiMarkersVisible) {
+                showAllPOIMarkers();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (typeof L === 'undefined') {
+                    alert('Map library failed to load. Please check your internet connection and refresh the page.');
+                    return;
+                }
+                initMap();
+                setupSearch('origin');
+                setupSearch('destination');
+
+                const saved = localStorage.getItem('travelPlannerPrefs');
+                if (saved) {
+                    const prefs = JSON.parse(saved);
+                    if (prefs.fuelEfficiency) document.getElementById('fuelEfficiency').value = prefs.fuelEfficiency;
+                    if (prefs.fuelPrice) document.getElementById('fuelPrice').value = prefs.fuelPrice;
+                    if (prefs.distanceUnit) document.getElementById('distanceUnit').value = prefs.distanceUnit;
+                    if (prefs.fuelUnit) document.getElementById('fuelUnit').value = prefs.fuelUnit;
+                    if (prefs.currency) document.getElementById('currency').value = prefs.currency;
+                    if (prefs.fuelQuantity) document.getElementById('fuelQuantity').value = prefs.fuelQuantity;
+                }
+            }, 500);
+        });
+
+        // Save preferences
+        window.addEventListener('beforeunload', () => {
+            const prefs = {
+                fuelEfficiency: document.getElementById('fuelEfficiency').value,
+                fuelPrice: document.getElementById('fuelPrice').value,
+                distanceUnit: document.getElementById('distanceUnit').value,
+                fuelUnit: document.getElementById('fuelUnit').value,
+                currency: document.getElementById('currency').value,
+                fuelQuantity: document.getElementById('fuelQuantity').value
+            };
+            localStorage.setItem('travelPlannerPrefs', JSON.stringify(prefs));
+        });
+    </script>
+</body>
+</html>
